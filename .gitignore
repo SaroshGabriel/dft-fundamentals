@@ -1,0 +1,10 @@
+# Simulation build artifacts
+*.vcd
+sim
+a.out
+*.out
+
+# Python
+__pycache__/
+*.pyc
+.venv/
