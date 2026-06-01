@@ -57,10 +57,10 @@ The Verilog scan-chain behaviour matches the Python `scan/` model.
 | 2 | Sequential logic: latches, flip-flops, FSMs | ✅ `foundations/` |
 | 3 | Scan flip-flop & scan-chain operation | ✅ `scan/`, `rtl/` |
 | 4 | Stuck-at fault model & fault coverage | ✅ `atpg/` |
-| 5 | ATPG pattern generation (D-algorithm/PODEM) | 🔜 |
-| 6 | Test compression (EDT) | 🔜 |
-| 7 | Boundary scan / JTAG TAP controller | 🔜 |
-| 8 | MBIST | 🔜 |
+| 5 | ATPG pattern generation (D-algorithm/PODEM) | ⬜ planned |
+| 6 | Test compression (EDT) | ⬜ planned |
+| 7 | Boundary scan / JTAG TAP controller | ⬜ planned |
+| 8 | MBIST | ⬜ planned |
 
 ## Tools
 Python 3 · Icarus Verilog (`iverilog`/`vvp`) · GTKWave · Yosys
