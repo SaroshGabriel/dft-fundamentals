@@ -1,21 +1,76 @@
 # DFT Fundamentals
 
-A hands-on, build-it-to-understand-it project working through core
-**Design-for-Test (DFT)** concepts — from digital logic foundations up to
-scan chains, fault models and ATPG. Each topic is implemented in runnable
-Python and/or Verilog rather than just summarised in notes.
+> Learning **Design-for-Test** the only way it really sticks — by building each
+> piece in runnable code. Gates to flip-flops to scan chains to ATPG, in Python
+> and synthesizable Verilog.
 
-## What's here
+![Focus](https://img.shields.io/badge/focus-Design%20for%20Test-1f6feb)
+![Python](https://img.shields.io/badge/Python-3-3776ab?logo=python&logoColor=white)
+![Verilog](https://img.shields.io/badge/HDL-Verilog-orange)
+![Sim](https://img.shields.io/badge/sim-Icarus%20Verilog-555)
+![Coverage](https://img.shields.io/badge/ATPG%20demo-100%25%20fault%20coverage-2ea043)
+![Testbench](https://img.shields.io/badge/testbench-PASS-2ea043)
+
+A hands-on study repo that works up the DFT stack — digital-logic foundations,
+scan-chain insertion, the stuck-at fault model, and fault simulation — with every
+concept implemented and runnable, not just summarised in notes.
+
+---
+
+## Why I Built This
+
+I'm targeting a **DFT engineering** role, and I learn hardware best by making it
+run. Reading about scan chains is one thing; writing a scan flip-flop, stitching
+four of them into a chain, shifting a pattern through, and watching the captured
+value come back out the other end is what makes it *click*. Same for the fault
+model — it's abstract until you actually inject a stuck-at fault, propagate it to
+an output, and compute the coverage yourself.
+
+So this repo is my DFT coursework done in code: each topic earns its place by
+working.
+
+---
+
+## What's Here
 
 ```
-foundations/   Digital-logic building blocks (gates → flip-flops → FSMs)
+foundations/   Digital logic: gates, Boolean algebra, latches, flip-flops, FSMs
 scan/          Scan-chain simulator (shift-in / capture / shift-out)
-atpg/          Stuck-at fault simulator + fault-coverage / test-set finder
+atpg/          Stuck-at fault simulator + coverage + minimal test-set finder
 rtl/           Synthesizable Verilog: D-FF, scan-FF, 4-bit scan chain
 testbench/     Verilog testbench for the scan chain (verified PASS)
 ```
 
-### `foundations/`
+---
+
+## Scan Chain — the core idea
+
+A scan chain turns hard-to-reach internal flip-flops into a shift register you can
+load and read from two pins. Each flop gets a 2:1 mux on its input, picked by the
+**scan-enable** (`SE`):
+
+```
+                SE=0  capture  (Q <= D, functional data)
+                SE=1  shift    (Q <= SI, from previous flop)
+
+  SI ─▶┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐
+       │ FF0  │──▶│ FF1  │──▶│ FF2  │──▶│ FF3  │──▶ SO
+       └──▲───┘   └──▲───┘   └──▲───┘   └──▲───┘
+         D0         D1         D2         D3      (functional inputs)
+          ▲ shared CLK · SE · RST to all flops ▲
+```
+
+- **Shift** in a known test pattern (`SE=1`), **capture** the circuit's response
+  in one functional clock (`SE=0`), then **shift** the captured state out to
+  compare against the expected result.
+- Implemented twice and cross-checked: a Python model (`scan/`) and structural
+  Verilog (`rtl/`) that produce the same output.
+
+---
+
+## Modules
+
+### `foundations/` — digital logic
 | File | What it does |
 |------|--------------|
 | `step1_truth_tables.py` | Truth tables for NOT/AND/OR/NAND/NOR |
@@ -24,43 +79,84 @@ testbench/     Verilog testbench for the scan chain (verified PASS)
 | `boolean_simplify.py` | K-maps (2/3/4-var), canonical SOP, De Morgan checks |
 | `latch_sim.py` | SR (NOR/NAND) and D latches via an iterative settle loop |
 | `flip_flop.py` | D-FF and JK-FF with edge detection + waveform demos |
-| `fsm.py` | Moore traffic-light FSM and an overlap-aware `101` detector |
+| `fsm.py` | Moore traffic-light FSM + an overlap-aware `101` sequence detector |
 
 ### `scan/` — scan-chain simulator
-Models a chain of N scan flip-flops with the three classic operations:
-`shift_in(pattern)`, `capture()` (one functional clock), and `shift_out()`.
-Each `ScanFF` selects between functional data `D` and serial-in `SI` based on
-the scan-enable `SE`. Run `python scan/scan_chain_simulator.py` for a self-test.
-
-### `atpg/` — fault simulator
-Implements the **stuck-at-0 / stuck-at-1** fault model on a small AND→OR
-circuit, detects each fault by propagating its effect to a primary output,
-computes **fault coverage**, and derives a minimal detecting test set.
-Run `python atpg/fault_simulator.py`.
-
-### `rtl/` + `testbench/` — Verilog
-- `dff.v` — D flip-flop, async reset
-- `scan_dff.v` — scan flip-flop: `Q <= SE ? SI : D`
-- `scan_chain.v` — structural 4-FF scan chain
-- `tb_scan_chain.v` — shifts a pattern in, captures, shifts out; **PASS** verified
+Models N scan flip-flops with `shift_in(pattern)`, `capture()` (one functional
+clock), and `shift_out()`. Each `ScanFF` picks between functional `D` and serial
+`SI` by the scan-enable.
 
 ```bash
-# Simulate (Icarus Verilog)
+python scan/scan_chain_simulator.py
+```
+
+### `atpg/` — fault simulator
+Stuck-at-0 / stuck-at-1 fault model on a small AND→OR circuit. Detects each fault
+by driving the node to the opposite value and propagating the difference to a
+primary output, then computes **fault coverage** and a minimal detecting test set.
+
+```bash
+python atpg/fault_simulator.py
+```
+
+Current demo circuit: **10 faults (SA0+SA1 per node), 100% coverage** from the
+derived test set.
+
+### `rtl/` + `testbench/` — Verilog
+| File | What it is |
+|------|------------|
+| `dff.v` | D flip-flop, async reset |
+| `scan_dff.v` | scan flip-flop — `Q <= SE ? SI : D` |
+| `scan_chain.v` | structural 4-FF scan chain (`SI → FF0…FF3 → SO`) |
+| `tb_scan_chain.v` | shift-in → capture → shift-out; self-checking |
+
+```bash
 iverilog -o sim rtl/*.v testbench/tb_scan_chain.v && vvp sim
 ```
-The Verilog scan-chain behaviour matches the Python `scan/` model.
+The testbench is **self-checking and passes** — the Verilog scan chain reproduces
+the Python model's shift/capture/shift-out result.
 
-## Topic coverage
+---
+
+## Topic Coverage
+
 | # | Topic | Status |
 |---|-------|--------|
 | 1 | Digital logic: gates, Boolean algebra, K-maps | ✅ `foundations/` |
 | 2 | Sequential logic: latches, flip-flops, FSMs | ✅ `foundations/` |
 | 3 | Scan flip-flop & scan-chain operation | ✅ `scan/`, `rtl/` |
 | 4 | Stuck-at fault model & fault coverage | ✅ `atpg/` |
-| 5 | ATPG pattern generation (D-algorithm/PODEM) | ⬜ planned |
+| 5 | ATPG pattern generation (D-algorithm / PODEM) | ⬜ planned |
 | 6 | Test compression (EDT) | ⬜ planned |
 | 7 | Boundary scan / JTAG TAP controller | ⬜ planned |
 | 8 | MBIST | ⬜ planned |
 
+---
+
+## What I Learned
+
+- **Scan turns sequential test into combinational test.** Once every flop is on
+  the chain, you control and observe internal state directly — the hard part of
+  testing a real chip becomes "shift, clock once, shift out."
+- **A fault is only "detected" if you can both sensitise it and propagate it** to
+  an output. Writing the propagation logic is what makes fault coverage stop being
+  a number on a slide.
+- **Two models beat one.** Building the scan chain in both Python and Verilog and
+  diffing their outputs caught my own bugs faster than either alone.
+
+---
+
+## Roadmap
+
+- [ ] ATPG pattern generation (PODEM) instead of the current exhaustive search
+- [ ] Run Yosys synthesis on the RTL → gate-level netlist
+- [ ] Boundary-scan / JTAG TAP controller (see [`bsr-cell`](https://github.com/SaroshGabriel/bsr-cell))
+- [ ] Scale the fault simulator to a parsed netlist (see [`dft-readiness-checker`](https://github.com/SaroshGabriel/dft-readiness-checker))
+
 ## Tools
-Python 3 · Icarus Verilog (`iverilog`/`vvp`) · GTKWave · Yosys
+
+Python 3 · Icarus Verilog (`iverilog` / `vvp`) · GTKWave · Yosys
+
+## Author
+
+**Sarosh (KJ)** · [github.com/SaroshGabriel](https://github.com/SaroshGabriel) · saroshjibreel@gmail.com
