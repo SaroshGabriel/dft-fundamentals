@@ -150,8 +150,8 @@ the Python model's shift/capture/shift-out result.
 
 - [ ] ATPG pattern generation (PODEM) instead of the current exhaustive search
 - [ ] Run Yosys synthesis on the RTL → gate-level netlist
-- [ ] Boundary-scan / JTAG TAP controller (see [`bsr-cell`](https://github.com/SaroshGabriel/bsr-cell))
-- [ ] Scale the fault simulator to a parsed netlist (see [`dft-readiness-checker`](https://github.com/SaroshGabriel/dft-readiness-checker))
+- [ ] Boundary-scan / JTAG TAP controller (see [`bsr-cell`](https://github.com/ChargeInMotion/bsr-cell))
+- [ ] Scale the fault simulator to a parsed netlist (see [`dft-readiness-checker`](https://github.com/ChargeInMotion/dft-readiness-checker))
 
 ## Tools
 
@@ -159,4 +159,4 @@ Python 3 · Icarus Verilog (`iverilog` / `vvp`) · GTKWave · Yosys
 
 ## Author
 
-**Sarosh (KJ)** · [github.com/SaroshGabriel](https://github.com/SaroshGabriel) · saroshjibreel@gmail.com
+**Sarosh (KJ)** · [github.com/ChargeInMotion](https://github.com/ChargeInMotion) · sarosh@chargeinmotion.dev
